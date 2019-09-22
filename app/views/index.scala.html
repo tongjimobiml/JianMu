@@ -4,7 +4,7 @@
 
 @main("Telco Data") {
 
-    <h1>电信数据</h1>
+    <h2>电信数据</h2>
 
     @* Flash shows updates to a page *@
     @request.flash.asScala().data.map { case (name, value) =>
@@ -21,32 +21,29 @@
     }
 
     <hr/>
-    <h2>下载App</h2>
+
+    <h4>下载App</h4>
     <div><a href="@routes.HomeController.downloadApp">下载</a></div>
 
     <hr/>
-    <h2>上传数据集</h2>
 
-    @helper.form(action = routes.HomeController.uploadFromWebPage, Symbol("enctype") -> "multipart/form-data") {
+    <h4>上传数据集</h4>
+    @helper.form(action = routes.HomeController.uploadFromWebPage, Symbol("enctype") -> "multipart/form-data", Symbol("class") -> "form-inline") {
         @helper.CSRF.formField
-
-        @helper.inputText(form("token"))
-
-        @helper.inputFile(form("file"))
-
-        <button type="submit" class="btn btn-primary">Upload Dataset</button>
+        @helper.inputText(form("token"), Symbol("class") -> "form-control form-control-sm")
+        @helper.inputFile(form("file"), Symbol("class") -> "form-control form-control-sm")
+        <button type="submit" class="btn btn-primary btn-sm">Upload Dataset</button>
     }
 
     <hr/>
-    <h2>已有数据列表</h2>
 
-    <table class="table table-striped table-bordered table-hover">
+    <h4>已有数据列表</h4>
+    <table class="table table-striped table-bordered table-hover table-sm">
         <thead class="thead-light">
             <tr>
                 <th>文件名</th> <th>数据条数</th>
                 <th>数据开始时间</th> <th>数据结束时间</th>
                 <th>上传时间</th> <th>文件大小</th>
-                <th>是否在服务器上被更改过</th>
                 <th>预览</th>
                 <th>下载</th>
             </tr>
@@ -57,9 +54,8 @@
                     <td>@ds.getName</td> <td>@ds.getRecordNum</td>
                     <th>@ds.getRecordStartDate</th> <th>@ds.getRecordEndDate</th>
                     <th>@ds.getUploadDate</th> <th>@ds.getFileSize</th>
-                    <th>@ds.isModified</th>
                     <th><a href="@routes.HomeController.viewDataset(ds.getName)">view</a></th>
-                    <th><a href="@routes.HomeController.downloadDataset(ds.getName)">download</a></th>
+                    <th><a href="@routes.HomeController.downloadDataset(ds.getName)">&#10515;</a></th>
                 </tr>
             }
         </tbody>

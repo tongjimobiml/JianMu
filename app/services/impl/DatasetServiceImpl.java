@@ -99,8 +99,8 @@ public class DatasetServiceImpl implements DatasetService {
     private DatasetDescription getFileDesc(Path p) {
         String name = p.toFile().getName();
 
-        DateFormat df1 = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
-        DateFormat df2 = new SimpleDateFormat("yyyy-MM-dd HH:mm");
+        DateFormat df1 = new SimpleDateFormat("yyyy/MM/dd HH:mm:ss");
+        DateFormat df2 = new SimpleDateFormat("yyyy/MM/dd HH:mm");
         // 详细信息
         int recordNum = -1;
         String startDate = "", endData = "", uploadDate = "";
@@ -139,6 +139,7 @@ public class DatasetServiceImpl implements DatasetService {
             log.error("获取数据集基本属性时出错, 报错信息: {}", ExceptionUtils.getStackTrace(e4));
         }
 
-        return new DatasetDescription(name, recordNum, startDate, endData, uploadDate, size, modified);
+        return new DatasetDescription(name, recordNum, startDate, endData, uploadDate,
+                DatasetDescription.formatReadableByteCount(size, true), modified);
     }
 }

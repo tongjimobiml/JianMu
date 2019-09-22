@@ -13,7 +13,7 @@ public class DatasetDescription {
 
     private String uploadDate;
 
-    private long fileSize;
+    private String fileSize;
 
     private boolean modified;
 
@@ -23,7 +23,7 @@ public class DatasetDescription {
 
     public DatasetDescription(String name, int recordNum,
                               String recordStartDate, String recordEndDate,
-                              String uploadDate, long fileSize, boolean modified) {
+                              String uploadDate, String fileSize, boolean modified) {
         this.name = name;
         this.recordNum = recordNum;
         this.recordStartDate = recordStartDate;
@@ -31,6 +31,24 @@ public class DatasetDescription {
         this.uploadDate = uploadDate;
         this.fileSize = fileSize;
         this.modified = modified;
+    }
+
+    /**
+     * Convert size.
+     *
+     * @param bytes bytes size
+     * @param si    true for use si, unit in 1000; false for use binary, unit in 1024
+     * @return readable String size
+     */
+    public static String formatReadableByteCount(long bytes, boolean si) {
+        if (bytes == -1) {
+            return "unknown";
+        }
+        int unit = si ? 1000 : 1024;
+        if (bytes < unit) return bytes + " B";
+        int exp = (int) (Math.log(bytes) / Math.log(unit));
+        String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
+        return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
     public String getName() {
@@ -73,11 +91,11 @@ public class DatasetDescription {
         this.uploadDate = uploadDate;
     }
 
-    public long getFileSize() {
+    public String getFileSize() {
         return fileSize;
     }
 
-    public void setFileSize(long fileSize) {
+    public void setFileSize(String fileSize) {
         this.fileSize = fileSize;
     }
 
