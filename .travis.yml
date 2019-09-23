@@ -30,4 +30,4 @@ script:
   - mv "`pwd`/dist/`ls dist`" "`pwd`/dist/jianmu"
   - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${SERVER_PORT} ${USER_NAME}@${SERVER_IP} 'bash -s' < scripts/clean.sh ${DEPLOY_PATH}
   - scp -C -i ~/.ssh/id_rsa -oStrictHostKeyChecking=no -P ${SERVER_PORT} -r dist/jianmu ${USER_NAME}@${SERVER_IP}:${DEPLOY_PATH}
-  - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${SERVER_PORT} ${USER_NAME}@${SERVER_IP} 'bash -s' < scripts/deploy.sh ${DEPLOY_PATH} ${SECRET_KEY}
+  - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${SERVER_PORT} ${USER_NAME}@${SERVER_IP} 'bash -s' < scripts/deploy.sh ${DEPLOY_PATH} ${SECRET_KEY} ${UPLOAD_TOKEN}
