@@ -14,5 +14,4 @@ public interface AppService {
     Path getAppPath();
 
     String getAppName();
-
 }

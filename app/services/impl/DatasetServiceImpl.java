@@ -1,5 +1,6 @@
 package services.impl;
 
+import com.google.common.collect.ImmutableSet;
 import com.typesafe.config.Config;
 import dto.DatasetDescription;
 import lombok.extern.slf4j.Slf4j;
@@ -10,6 +11,7 @@ import services.DatasetService;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 import java.io.IOException;
+import java.lang.reflect.Field;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -17,10 +19,7 @@ import java.nio.file.attribute.BasicFileAttributes;
 import java.nio.file.attribute.FileTime;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.List;
+import java.util.*;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -35,6 +34,11 @@ public class DatasetServiceImpl implements DatasetService {
     }
 
     @Override
+    public String getToken() {
+        return config.getString("upload-dataset.token");
+    }
+
+    @Override
     public Path getUploadDirectory() throws IOException {
         String uploadDir = config.getString("upload-dataset.directory-name");
         Path p = Paths.get(uploadDir).toAbsolutePath();
@@ -45,14 +49,18 @@ public class DatasetServiceImpl implements DatasetService {
     }
 
     @Override
-    public List<DatasetDescription> listDataSet() {
+    public List<DatasetDescription> listDataSet(boolean ascending) {
         try {
+            Comparator<DatasetDescription> c = Comparator.comparing(DatasetDescription::getUploadDate);
+            if (!ascending) {
+                c = c.reversed();
+            }
             Path uploadDir = getUploadDirectory();
             try (Stream<Path> paths = Files.walk(Paths.get(uploadDir.toString()))) {
                 return paths
                         .filter(Files::isRegularFile)
                         .map(this::getFileDesc)
-                        .sorted(Comparator.comparing(DatasetDescription::getUploadDate).reversed())
+                        .sorted(c)
                         .collect(Collectors.toList());
             }
         } catch (IOException e1) {
@@ -62,8 +70,55 @@ public class DatasetServiceImpl implements DatasetService {
     }
 
     @Override
-    public String getToken() {
-        return config.getString("upload-dataset.token");
+    public List<DatasetDescription> listSortedDataSet(String sortAttr, boolean ascending) {
+        Comparator<DatasetDescription> byStringAttr = Comparator.comparing(d -> this.<String>getTattr(d, sortAttr));
+        Comparator<DatasetDescription> byIntAttr = Comparator.comparing(d -> this.<Integer>getTattr(d, sortAttr));
+        Comparator<DatasetDescription> byLongAttr = Comparator.comparing(d -> this.<Long>getTattr(d, sortAttr));
+
+        Set<String> stringAttrSet = ImmutableSet.of("name", "recordStartDate", "recordEndDate", "uploadDate");
+        Set<String> intAttrSet = ImmutableSet.of("recordNum");
+        Set<String> longAttrSet = ImmutableSet.of("fileSize");
+
+        Comparator<DatasetDescription> comparator = null;
+        if (stringAttrSet.contains(sortAttr)) {
+            comparator = byStringAttr;
+        } else if (intAttrSet.contains(sortAttr)) {
+            comparator = byIntAttr;
+        } else if (longAttrSet.contains(sortAttr)) {
+            comparator = byLongAttr;
+        } else {
+            log.error("sortAttr错误: {}", sortAttr);
+            return listDataSet(ascending);
+        }
+
+        if (!ascending) {
+            comparator = comparator.reversed();
+        }
+
+        try {
+            Path uploadDir = getUploadDirectory();
+            try (Stream<Path> paths = Files.walk(Paths.get(uploadDir.toString()))) {
+                return paths
+                        .filter(Files::isRegularFile)
+                        .map(this::getFileDesc)
+                        .sorted(comparator)
+                        .collect(Collectors.toList());
+            }
+        } catch (IOException e1) {
+            log.error("按属性列出所有数据集时出错, 报错信息: {}", ExceptionUtils.getStackTrace(e1));
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    public Path getDatasetPath(String datasetName) {
+        try {
+            Path uploadDir = getUploadDirectory();
+            return Paths.get(uploadDir.toString(), datasetName);
+        } catch (IOException e) {
+            log.error("获取dataset路径出错, 报错信息: {}", ExceptionUtils.getStackTrace(e));
+            return null;
+        }
     }
 
     @Override
@@ -85,17 +140,6 @@ public class DatasetServiceImpl implements DatasetService {
         }
     }
 
-    @Override
-    public Path getDatasetPath(String datasetName) {
-        try {
-            Path uploadDir = getUploadDirectory();
-            return Paths.get(uploadDir.toString(), datasetName);
-        } catch (IOException e) {
-            log.error("获取dataset路径出错, 报错信息: {}", ExceptionUtils.getStackTrace(e));
-            return null;
-        }
-    }
-
     private DatasetDescription getFileDesc(Path p) {
         String name = p.toFile().getName();
 
@@ -113,20 +157,20 @@ public class DatasetServiceImpl implements DatasetService {
         try {
             recordNum = Integer.parseInt(new StringBuilder(stats[2]).reverse().toString());
         } catch (Exception e1) {
-            log.error("解析recordNum出错: {}", ExceptionUtils.getStackTrace(e1));
+            log.warn("解析recordNum出错: {}", name);
         }
         DateFormat df3 = new SimpleDateFormat("yyMMddHHmm");
         try {
             Date sd = df3.parse(new StringBuilder(stats[1]).reverse().toString());
             startDate = df2.format(sd);
         } catch (Exception e2) {
-            log.error("解析startDate出错: {}", ExceptionUtils.getStackTrace(e2));
+            log.warn("解析startDate出错: {}", name);
         }
         try {
             Date ed = df3.parse(new StringBuilder(stats[0].substring(4)).reverse().toString());
             endData = df2.format(ed);
         } catch (Exception e3) {
-            log.error("解析endData出错: {}", ExceptionUtils.getStackTrace(e3));
+            log.warn("解析endData出错: {}", name);
         }
         try {
             BasicFileAttributes attrs = Files.readAttributes(p, BasicFileAttributes.class);
@@ -139,7 +183,23 @@ public class DatasetServiceImpl implements DatasetService {
             log.error("获取数据集基本属性时出错, 报错信息: {}", ExceptionUtils.getStackTrace(e4));
         }
 
-        return new DatasetDescription(name, recordNum, startDate, endData, uploadDate,
-                DatasetDescription.formatReadableByteCount(size, true), modified);
+        return new DatasetDescription(name, recordNum, startDate, endData, uploadDate, size);
+    }
+
+    private <T> T getTattr(Object obj, String attr) {
+        Object value = getAttr(obj, attr);
+        @SuppressWarnings("unchecked")
+        T t = (T) value;
+        return t;
+    }
+
+    private Object getAttr(Object obj, String attr) {
+        try {
+            Field field = obj.getClass().getDeclaredField(attr);
+            field.setAccessible(true);
+            return field.get(obj);
+        } catch (NoSuchFieldException | IllegalAccessException e) {
+            return null;
+        }
     }
 }

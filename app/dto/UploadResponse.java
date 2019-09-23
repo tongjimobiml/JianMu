@@ -13,9 +13,11 @@ public class UploadResponse {
     @Getter
     @Setter
     private boolean success;
+
     @Getter
     @Setter
     private String status;
+
     @Getter
     @Setter
     private String message;

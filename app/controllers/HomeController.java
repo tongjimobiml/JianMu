@@ -1,6 +1,7 @@
 package controllers;
 
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import dto.Condition;
 import dto.UploadResponse;
 import dto.WebpageDataset;
 import lombok.extern.slf4j.Slf4j;
@@ -24,6 +25,7 @@ import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
+
 @Slf4j
 @Singleton
 public class HomeController extends Controller {
@@ -31,69 +33,74 @@ public class HomeController extends Controller {
     /* Form objects are immutable. Calls to methods like bind() and fill()
      *  will return a new object filled with the new data. */
     private final Form<WebpageDataset> webpageDatasetForm;
+    private final Form<Condition> conditionForm;
 
     private final MessagesApi messagesApi;
 
     private final DatasetService datasetService;
-
     private final AppService appService;
 
     @Inject
     public HomeController(FormFactory formFactory, MessagesApi messagesApi,
                           DatasetService datasetService, AppService appService) {
         this.webpageDatasetForm = formFactory.form(WebpageDataset.class);
+        this.conditionForm = formFactory.form(Condition.class);
         this.messagesApi = messagesApi;
         this.datasetService = datasetService;
         this.appService = appService;
     }
 
-    public Result index(Http.Request request) {
-        return ok(
-                views.html.index.render(
-                        datasetService.listDataSet(),
-                        webpageDatasetForm,
-                        request,
-                        messagesApi.preferred(request)));
+    public Result index(String sort, boolean ascending) {
+        return ok(views.html.index.render(sort, String.valueOf(ascending),
+                datasetService.listSortedDataSet(sort, ascending),
+                webpageDatasetForm, conditionForm, request(), messagesApi.preferred(request())));
+    }
+
+    public Result sort(Http.Request request) {
+        final Form<Condition> condForm = conditionForm.bindFromRequest(request);
+
+        if (condForm.hasErrors()) {
+            log.error("conditionForm出错, 报错信息: {}", condForm.errors());
+            return badRequest(views.html.index.render("uploadDate", String.valueOf(false),
+                    datasetService.listSortedDataSet("uploadDate", false),
+                    webpageDatasetForm, condForm, request, messagesApi.preferred(request)));
+        }
+
+        Condition condition = condForm.get();
+        String sort = condition.getSort();
+        boolean asc = condition.isAscending();
+        return redirect(routes.HomeController.index(sort, asc));
     }
 
     public Result uploadFromWebPage(Http.Request request) {
-        final Form<WebpageDataset> form = webpageDatasetForm.bindFromRequest(request);
+        final Form<WebpageDataset> uldForm = webpageDatasetForm.bindFromRequest(request);
 
-        // form出错
-        if (form.hasErrors()) {
-            log.error("form出错, 报错信息为: {}", form.errors());
-            // return 400
-            log.warn("访问出错: 400");
-            return badRequest(
-                    views.html.index.render(
-                            datasetService.listDataSet(),
-                            form,
-                            request,
-                            messagesApi.preferred(request)));
+        if (uldForm.hasErrors()) {
+            log.error("webpageDatasetForm出错, 报错信息: {}", uldForm.errors());
+            return badRequest(views.html.index.render("uploadDate", String.valueOf(false),
+                    datasetService.listSortedDataSet("uploadDate", false),
+                    uldForm, conditionForm, request, messagesApi.preferred(request)));
         }
 
+        WebpageDataset webpageDataset = uldForm.get();
+        String sort = webpageDataset.getSort();
+        boolean asc = webpageDataset.isAscending();
 
-        WebpageDataset webpageDataset = form.get();
-        // token出错
         if (!webpageDataset.getToken().equals(datasetService.getToken())) {
-            return redirect(routes.HomeController.index()).flashing("alert alert-warning", "token错误!");
+            return redirect(routes.HomeController.index(sort, asc)).flashing("alert alert-warning", "token错误!");
         }
-
 
         final Http.MultipartFormData.FilePart<TemporaryFile> uploadedFile = webpageDataset.getFile();
-        // 文件为空
         if (uploadedFile == null) {
-            return redirect(routes.HomeController.index()).flashing("alert alert-warning", "文件为空!");
+            return redirect(routes.HomeController.index(sort, asc)).flashing("alert alert-warning", "文件为空!");
         }
 
-
-        // 存储文件
         boolean saveResult = datasetService.saveDataset(uploadedFile);
         if (saveResult) {
-            return redirect(routes.HomeController.index()).flashing("alert alert-success", "上传数据集成功!");
+            return redirect(routes.HomeController.index(sort, asc)).flashing("alert alert-success", "上传数据集成功!");
         } else {
             // 服务器内部错误, 存储失败, 需要查看日志
-            return redirect(routes.HomeController.index()).flashing("alert alert-warning", "服务器错误, 存储失败!");
+            return redirect(routes.HomeController.index(sort, asc)).flashing("alert alert-warning", "服务器错误, 存储失败!");
         }
     }
 
@@ -116,36 +123,28 @@ public class HomeController extends Controller {
         }
     }
 
-    public Result viewDataset(String name) {
+    public Result viewDataset(String name, boolean inline, String sort, boolean ascending) {
         try {
             String urlName = URLEncoder.encode(name, "UTF-8");
-            return ok().sendFile(new File(datasetService.getDatasetPath(name).toString()), true)
-                    .as("text/plain; charset=utf-8")
+            String contentType = inline ? "text/plain; charset=utf-8" : "application/x-download";
+            String contentDisposition = inline ? String.format("inline; filename=\"%s\"", urlName)
+                    : String.format("attachment; filename=\"%s\"", urlName);
+            return ok().sendFile(new File(datasetService.getDatasetPath(name).toString()), inline)
+                    .as(contentType)
                     .withHeader("Cache-Control", "no-cache")
-                    .withHeader("Content-Disposition", String.format("inline; filename=\"%s\"", urlName));
+                    .withHeader("Content-Disposition", contentDisposition);
         } catch (UnsupportedEncodingException e) {
             log.error("编码文件名出错, 文件名为: {}, 报错信息: {}", name, ExceptionUtils.getStackTrace(e));
-            return redirect(routes.HomeController.index()).flashing("alert alert-warning", "服务器错误!");
+            return redirect(routes.HomeController.index(sort, ascending)).flashing("alert alert-warning", "服务器错误!");
         }
+
     }
 
-    public Result downloadDataset(String name) {
-        try {
-            String urlName = URLEncoder.encode(name, "UTF-8");
-            return ok().sendFile(new File(datasetService.getDatasetPath(name).toString()), false)
-                    .as("application/x-download")
-                    .withHeader("Cache-Control", "no-cache")
-                    .withHeader("Content-Disposition", String.format("attachment; filename=\"%s\"", urlName));
-        } catch (UnsupportedEncodingException e) {
-            log.error("编码文件名出错, 文件名为: {}, 报错信息: {}", name, ExceptionUtils.getStackTrace(e));
-            return redirect(routes.HomeController.index()).flashing("alert alert-warning", "服务器错误!");
-        }
-    }
-
-    public Result downloadApp() {
+    public Result downloadApp(String sort, boolean ascending) {
         Path appPath = appService.getAppPath();
         if (appPath == null || Files.notExists(appPath)) {
-            return redirect(routes.HomeController.index()).flashing("alert alert-warning", "App文件不存在!");
+            return redirect(routes.HomeController.index(sort, ascending))
+                    .flashing("alert alert-warning", "App文件不存在!");
         }
 
         try {
@@ -156,7 +155,8 @@ public class HomeController extends Controller {
                     .withHeader("Content-Disposition", String.format("attachment; filename=\"%s\"", urlName));
         } catch (UnsupportedEncodingException e) {
             log.error("编码App文件名出错, 报错信息: {}", ExceptionUtils.getStackTrace(e));
-            return redirect(routes.HomeController.index()).flashing("alert alert-warning", "服务器错误!");
+            return redirect(routes.HomeController.index(sort, ascending))
+                    .flashing("alert alert-warning", "服务器错误!");
         }
     }
 

@@ -13,14 +13,15 @@ import java.util.List;
 @ImplementedBy(DatasetServiceImpl.class)
 public interface DatasetService {
 
-    Path getUploadDirectory() throws IOException;
-
-    List<DatasetDescription> listDataSet();
-
     String getToken();
 
-    boolean saveDataset(Http.MultipartFormData.FilePart<Files.TemporaryFile> dataset);
+    Path getUploadDirectory() throws IOException;
+
+    List<DatasetDescription> listDataSet(boolean ascending);
+
+    List<DatasetDescription> listSortedDataSet(String sortAttr, boolean ascending);
 
     Path getDatasetPath(String datasetName);
 
+    boolean saveDataset(Http.MultipartFormData.FilePart<Files.TemporaryFile> dataset);
 }

@@ -5,7 +5,6 @@ import lombok.Setter;
 import play.libs.Files;
 import play.mvc.Http;
 
-
 public class WebpageDataset {
 
     @Getter
@@ -16,4 +15,11 @@ public class WebpageDataset {
     @Setter
     private Http.MultipartFormData.FilePart<Files.TemporaryFile> file;
 
+    @Getter
+    @Setter
+    private String sort;
+
+    @Getter
+    @Setter
+    private boolean ascending;
 }

@@ -13,24 +13,20 @@ public class DatasetDescription {
 
     private String uploadDate;
 
-    private String fileSize;
-
-    private boolean modified;
-
+    private long fileSize;
 
     public DatasetDescription() {
     }
 
     public DatasetDescription(String name, int recordNum,
                               String recordStartDate, String recordEndDate,
-                              String uploadDate, String fileSize, boolean modified) {
+                              String uploadDate, long fileSize) {
         this.name = name;
         this.recordNum = recordNum;
         this.recordStartDate = recordStartDate;
         this.recordEndDate = recordEndDate;
         this.uploadDate = uploadDate;
         this.fileSize = fileSize;
-        this.modified = modified;
     }
 
     /**
@@ -40,7 +36,7 @@ public class DatasetDescription {
      * @param si    true for use si, unit in 1000; false for use binary, unit in 1024
      * @return readable String size
      */
-    public static String formatReadableByteCount(long bytes, boolean si) {
+    public String formatReadableByteCount(long bytes, boolean si) {
         if (bytes == -1) {
             return "unknown";
         }
@@ -49,6 +45,10 @@ public class DatasetDescription {
         int exp = (int) (Math.log(bytes) / Math.log(unit));
         String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
+    }
+
+    public String getReadableFileSize() {
+        return formatReadableByteCount(fileSize, true);
     }
 
     public String getName() {
@@ -91,19 +91,11 @@ public class DatasetDescription {
         this.uploadDate = uploadDate;
     }
 
-    public String getFileSize() {
+    public long getFileSize() {
         return fileSize;
     }
 
-    public void setFileSize(String fileSize) {
+    public void setFileSize(long fileSize) {
         this.fileSize = fileSize;
-    }
-
-    public boolean isModified() {
-        return modified;
-    }
-
-    public void setModified(boolean modified) {
-        this.modified = modified;
     }
 }
