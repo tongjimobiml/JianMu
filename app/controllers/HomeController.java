@@ -25,7 +25,6 @@ import java.net.URLEncoder;
 import java.nio.file.Files;
 import java.nio.file.Path;
 
-
 @Slf4j
 @Singleton
 public class HomeController extends Controller {
@@ -50,12 +49,25 @@ public class HomeController extends Controller {
         this.appService = appService;
     }
 
+    /**
+     * 根据指定属性和升降序列出所有数据文件并在页面显示
+     *
+     * @param sort      作为排序依据的属性
+     * @param ascending 升序还是降序
+     * @return 渲染的页面
+     */
     public Result index(String sort, boolean ascending) {
         return ok(views.html.index.render(sort, String.valueOf(ascending),
                 datasetService.listSortedDataSet(sort, ascending),
                 webpageDatasetForm, conditionForm, request(), messagesApi.preferred(request())));
     }
 
+    /**
+     * 按选择的属性和升降序重新排序列出数据文件
+     *
+     * @param request 包含 form 数据的请求
+     * @return 渲染的页面
+     */
     public Result sort(Http.Request request) {
         final Form<Condition> condForm = conditionForm.bindFromRequest(request);
 
@@ -72,6 +84,12 @@ public class HomeController extends Controller {
         return redirect(routes.HomeController.index(sort, asc));
     }
 
+    /**
+     * 从网页上传一个数据文件
+     *
+     * @param request 包含 form 数据的请求
+     * @return 渲染的页面，并根据是否上传成功显示对应的结果
+     */
     public Result uploadFromWebPage(Http.Request request) {
         final Form<WebpageDataset> uldForm = webpageDatasetForm.bindFromRequest(request);
 
@@ -104,6 +122,12 @@ public class HomeController extends Controller {
         }
     }
 
+    /**
+     * 手机端上传数据的 API
+     *
+     * @param request 包含数据文件的请求
+     * @return Json格式的结果
+     */
     public Result fileUploadApi(Http.Request request) {
         final Http.MultipartFormData<TemporaryFile> body = request.body().asMultipartFormData();
         final Http.MultipartFormData.FilePart<TemporaryFile> uploadedFile = body.getFile("file");
@@ -123,6 +147,15 @@ public class HomeController extends Controller {
         }
     }
 
+    /**
+     * 在线打开数据文件或者下载
+     *
+     * @param name      数据文件的全名
+     * @param inline    true 则在线预览，false 则下载文件
+     * @param sort      当前的排序属性
+     * @param ascending 当前的升降序
+     * @return inline 为 true 时在新页面预览，inline 为 false 时下载文件，出错时重新渲染页面并显示错误信息
+     */
     public Result viewDataset(String name, boolean inline, String sort, boolean ascending) {
         try {
             String urlName = URLEncoder.encode(name, "UTF-8");
@@ -137,9 +170,15 @@ public class HomeController extends Controller {
             log.error("编码文件名出错, 文件名为: {}, 报错信息: {}", name, ExceptionUtils.getStackTrace(e));
             return redirect(routes.HomeController.index(sort, ascending)).flashing("alert alert-warning", "服务器错误!");
         }
-
     }
 
+    /**
+     * 下载 Android APK 文件
+     *
+     * @param sort      当前的排序属性
+     * @param ascending 当前的升降序
+     * @return 能进行下载则开始下载，否则重新渲染页面并显示错误信息
+     */
     public Result downloadApp(String sort, boolean ascending) {
         Path appPath = appService.getAppPath();
         if (appPath == null || Files.notExists(appPath)) {

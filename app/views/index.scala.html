@@ -5,7 +5,12 @@
 @(cSort: String, cAscending: String, datasets: util.List[DatasetDescription], uploadForm: Form[WebpageDataset], condForm: Form[Condition])(implicit request: Request, messages: play.i18n.Messages)
 
 @main("Telco Data") {
-    <h3>电信数据</h3>
+    <h3>电信数据
+        <a href="https://github.com/tongjimobiml/JianMu" target="_blank">
+            <img alt="github link" width=21" height="21"
+            src="@routes.Assets.versioned("images/github-mark.png")">
+        </a>
+    </h3>
     @* Flash shows updates to a page *@
     @request.flash.asScala.data.map { case (name, value) =>
         <div class="@name">@value</div>

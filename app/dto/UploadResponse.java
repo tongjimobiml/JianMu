@@ -5,7 +5,9 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
-
+/**
+ * 用于 API 上传的返回
+ */
 @NoArgsConstructor
 @AllArgsConstructor
 public class UploadResponse {

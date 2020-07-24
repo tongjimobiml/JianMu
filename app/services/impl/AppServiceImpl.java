@@ -33,18 +33,18 @@ public class AppServiceImpl implements AppService {
     }
 
     @Override
+    public String getAppName() {
+        return config.getString("download-app.app-file-name");
+    }
+
+    @Override
     public Path getAppPath() {
         try {
             Path downloadDir = getAppDirectory();
             return Paths.get(downloadDir.toString(), getAppName());
         } catch (IOException e) {
-            log.error("获取dataset路径出错, 报错信息: {}", ExceptionUtils.getStackTrace(e));
+            log.error("获取APK路径出错, 报错信息: {}", ExceptionUtils.getStackTrace(e));
             return null;
         }
-    }
-
-    @Override
-    public String getAppName() {
-        return config.getString("download-app.app-file-name");
     }
 }

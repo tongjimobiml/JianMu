@@ -8,7 +8,7 @@ jdk:
 
 branches:
   only:
-    - master
+    - deploy1
 
 addons:
   ssh_known_hosts:

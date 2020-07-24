@@ -1,33 +1,35 @@
 package dto;
 
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
+/**
+ * 用于描述数据文件的属性
+ */
+@NoArgsConstructor
+@AllArgsConstructor
 public class DatasetDescription {
 
+    @Setter
     private String name;
 
+    @Setter
     private int recordNum;
 
+    @Setter
     private String recordStartDate;
 
+    @Setter
     private String recordEndDate;
 
+    @Setter
     private String uploadDate;
 
+    @Getter
+    @Setter
     private long fileSize;
-
-    public DatasetDescription() {
-    }
-
-    public DatasetDescription(String name, int recordNum,
-                              String recordStartDate, String recordEndDate,
-                              String uploadDate, long fileSize) {
-        this.name = name;
-        this.recordNum = recordNum;
-        this.recordStartDate = recordStartDate;
-        this.recordEndDate = recordEndDate;
-        this.uploadDate = uploadDate;
-        this.fileSize = fileSize;
-    }
 
     /**
      * Convert size.
@@ -47,55 +49,37 @@ public class DatasetDescription {
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
+    /**
+     * 以方便阅读的形式返回数据文件的大小
+     *
+     * @return 表示文件大小的字符串
+     */
     public String getReadableFileSize() {
         return formatReadableByteCount(fileSize, true);
     }
 
+    /*
+     * getters
+     * 由于要在模板文件（index.scala.html）中使用，因此不能使用 lombok 注解的方式
+     */
+
     public String getName() {
         return name;
-    }
-
-    public void setName(String name) {
-        this.name = name;
     }
 
     public int getRecordNum() {
         return recordNum;
     }
 
-    public void setRecordNum(int recordNum) {
-        this.recordNum = recordNum;
-    }
-
     public String getRecordStartDate() {
         return recordStartDate;
-    }
-
-    public void setRecordStartDate(String recordStartDate) {
-        this.recordStartDate = recordStartDate;
     }
 
     public String getRecordEndDate() {
         return recordEndDate;
     }
 
-    public void setRecordEndDate(String recordEndDate) {
-        this.recordEndDate = recordEndDate;
-    }
-
     public String getUploadDate() {
         return uploadDate;
-    }
-
-    public void setUploadDate(String uploadDate) {
-        this.uploadDate = uploadDate;
-    }
-
-    public long getFileSize() {
-        return fileSize;
-    }
-
-    public void setFileSize(long fileSize) {
-        this.fileSize = fileSize;
     }
 }

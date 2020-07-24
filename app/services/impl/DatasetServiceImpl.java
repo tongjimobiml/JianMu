@@ -34,11 +34,6 @@ public class DatasetServiceImpl implements DatasetService {
     }
 
     @Override
-    public String getToken() {
-        return config.getString("upload-dataset.token");
-    }
-
-    @Override
     public Path getUploadDirectory() throws IOException {
         String uploadDir = config.getString("upload-dataset.directory-name");
         Path p = Paths.get(uploadDir).toAbsolutePath();
@@ -80,6 +75,7 @@ public class DatasetServiceImpl implements DatasetService {
         Set<String> longAttrSet = ImmutableSet.of("fileSize");
 
         Comparator<DatasetDescription> comparator = null;
+        // 为不同类型的属性选择不同的 Comparator
         if (stringAttrSet.contains(sortAttr)) {
             comparator = byStringAttr;
         } else if (intAttrSet.contains(sortAttr)) {
@@ -123,7 +119,7 @@ public class DatasetServiceImpl implements DatasetService {
 
     @Override
     public boolean saveDataset(Http.MultipartFormData.FilePart<play.libs.Files.TemporaryFile> dataset) {
-        // 调用时保证dataset不为空
+        // 调用时已保证 dataset 不为 null
         try {
             String fileName = dataset.getFilename();
             play.libs.Files.TemporaryFile file = dataset.getRef();
@@ -140,6 +136,20 @@ public class DatasetServiceImpl implements DatasetService {
         }
     }
 
+    @Override
+    public String getToken() {
+        return config.getString("upload-dataset.token");
+    }
+
+
+    /* private methods */
+
+    /**
+     * 从一个数据文件的路径获取相关信息，数据文件的命名需要遵循 Android APP 导出的文件命名格式，否则会解析出错
+     *
+     * @param p 路径
+     * @return 相关信息的描述
+     */
     private DatasetDescription getFileDesc(Path p) {
         String name = p.toFile().getName();
 
@@ -151,7 +161,11 @@ public class DatasetServiceImpl implements DatasetService {
         long size = -1;
         boolean modified = false;
 
-        // name格式示例: 嘉实-17号楼廖山河_211_1711051829_1711051833.txt
+        /*
+         * 从文件名解析部分信息
+         * 数据文件全名（name）的格式：{文件名}_{收集的记录条数}_{该次记录收集的开始时间}_{该次记录收集的结束时间}.txt
+         * 示例：嘉实-17号楼_211_1711051829_1711051833.txt
+         */
         String reversed = new StringBuilder(name).reverse().toString();
         String[] stats = reversed.split("_", 4);
         try {
@@ -186,6 +200,14 @@ public class DatasetServiceImpl implements DatasetService {
         return new DatasetDescription(name, recordNum, startDate, endData, uploadDate, size);
     }
 
+    /**
+     * 根据属性名获取属性值，并根据模板参数进行类型转换
+     *
+     * @param obj  要获取属性的对象
+     * @param attr 属性名
+     * @param <T>  属性值的数据类型
+     * @return 指定类型的属性值
+     */
     private <T> T getTattr(Object obj, String attr) {
         Object value = getAttr(obj, attr);
         @SuppressWarnings("unchecked")
@@ -193,6 +215,13 @@ public class DatasetServiceImpl implements DatasetService {
         return t;
     }
 
+    /**
+     * 利用反射根据属性名获得属性值
+     *
+     * @param obj  要获取属性的对象
+     * @param attr 属性名
+     * @return Object 类型的属性值
+     */
     private Object getAttr(Object obj, String attr) {
         try {
             Field field = obj.getClass().getDeclaredField(attr);

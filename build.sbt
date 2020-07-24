@@ -1,5 +1,5 @@
 name := """JianMu"""
-organization := "com.mirrordust"
+organization := "com.tongjimobiml"
 
 version := "1.0-SNAPSHOT"
 
