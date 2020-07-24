@@ -198,11 +198,4 @@ public class HomeController extends Controller {
                     .flashing("alert alert-warning", "服务器错误!");
         }
     }
-
-    public Result test() {
-        ObjectNode json = Json.newObject();
-        json.put("msg", "用于测试");
-        json.put("status", "访问正常");
-        return ok(json);
-    }
 }

@@ -11,7 +11,5 @@ POST        /uploads              controllers.HomeController.fileUploadApi(reque
 GET         /view/:name           controllers.HomeController.viewDataset(name: String, inline: Boolean ?= true, sort: String ?= "uploadDate", ascending: Boolean ?= false)
 GET         /downloadapp          controllers.HomeController.downloadApp(sort: String ?= "uploadDate", ascending: Boolean ?= false)
 
-GET         /test                 controllers.HomeController.test
-
 # Map static resources from the /public folder to the /assets URL path
 GET         /assets/*file         controllers.Assets.versioned(path="/public", file: Asset)

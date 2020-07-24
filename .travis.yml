@@ -25,9 +25,5 @@ script:
   - sbt clean
   - sbt compile && sbt test
   - sbt universal:packageZipTarball
-  - mkdir -p dist
-  - find target/universal -type f -name "jianmu*.tgz" -print0 | xargs -t -0 tar -zxv -C dist -f
-  - mv "`pwd`/dist/`ls dist`" "`pwd`/dist/jianmu"
-  - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${SERVER_PORT} ${USER_NAME}@${SERVER_IP} 'bash -s' < scripts/clean.sh ${DEPLOY_PATH}
-  - scp -C -i ~/.ssh/id_rsa -oStrictHostKeyChecking=no -P ${SERVER_PORT} -r dist/jianmu ${USER_NAME}@${SERVER_IP}:${DEPLOY_PATH}
-  - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${SERVER_PORT} ${USER_NAME}@${SERVER_IP} 'bash -s' < scripts/deploy.sh ${DEPLOY_PATH} ${SECRET_KEY} ${UPLOAD_TOKEN}
+  - travis_wait 30 scp -C -i ~/.ssh/id_rsa -oStrictHostKeyChecking=no -P ${SERVER_PORT} "`find target/universal -maxdepth 1 -type f -name 'jianmu*.tgz'`" ${USER_NAME}@${SERVER_IP}:${DEPLOY_PATH}
+  - ssh -i ~/.ssh/id_rsa -o StrictHostKeyChecking=no -p ${SERVER_PORT} ${USER_NAME}@${SERVER_IP} 'bash -s' < scripts/deploy.sh ${DEPLOY_PATH} ${SECRET_KEY} ${UPLOAD_TOKEN} "`md5sum \"\`find target/universal -maxdepth 1 -type f -name 'jianmu*.tgz'\`\" | cut -d' ' -f1`"
